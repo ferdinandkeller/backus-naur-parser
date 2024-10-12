@@ -1,10 +1,13 @@
 use std::{collections::HashMap, fmt::Display, fs};
 
 fn main() {
-    let raw_content = fs::read_to_string("bnf.txt").expect("Error reading file");
-    let chars: Vec<char> = raw_content.chars().collect();
-    let (_, grammar) = parse_grammar(&chars, 0).expect("Error parsing grammar");
-    println!("{}", grammar);
+    // let raw_content = fs::read_to_string("bnf.txt").expect("Error reading grammar file");
+    // let chars: Vec<char> = raw_content.chars().collect();
+    // let (_, grammar) = parse_grammar(&chars, 0).expect("Error parsing grammar");
+    // println!("{}", grammar);
+
+    // let input = fs::read_to_string("input.txt").expect("Error reading input file");
+    // println!("{}", input);
 }
 
 #[derive(Debug, Clone)]
@@ -60,7 +63,7 @@ impl Display for Sequence {
 #[derive(Debug, Clone)]
 enum Element {
     Literal(String),
-    Range { start: String, end: String },
+    Range { start: char, end: char },
     Reference(String),
     Nothing,
 }
@@ -193,7 +196,7 @@ fn parse_string_end(chars: &Vec<char>, index: usize, escape_length: usize) -> Re
     Ok(index + 1 + escape_length)
 }
 
-fn parse_range(chars: &Vec<char>, index: usize) -> Result<(usize, String, String), ()> {
+fn parse_range(chars: &Vec<char>, index: usize) -> Result<(usize, char, char), ()> {
     let (index, first_string) = parse_string(chars, index)?;
     if first_string.len() != 1 {
         return Err(());
@@ -206,7 +209,17 @@ fn parse_range(chars: &Vec<char>, index: usize) -> Result<(usize, String, String
         return Err(());
     }
 
-    Ok((index, first_string, second_string))
+    Ok((
+        index,
+        first_string
+            .chars()
+            .nth(0)
+            .expect("could not get first char"),
+        second_string
+            .chars()
+            .nth(0)
+            .expect("could not get second char"),
+    ))
 }
 
 fn parse_range_symbol(chars: &Vec<char>, index: usize) -> Result<usize, ()> {
@@ -303,6 +316,7 @@ fn parse_expression(chars: &Vec<char>, index: usize) -> Result<(usize, Expressio
         },
     ))
 }
+
 fn parse_grammar(chars: &Vec<char>, mut index: usize) -> Result<(usize, Grammar), ()> {
     let mut grammar = HashMap::new();
     while let Ok((new_index, expression)) = parse_expression(chars, index) {
