@@ -1,0 +1,6 @@
+<digit> ::= "0"..="9"
+<number> ::= <digit> <number> | <digit>
+<space> ::= " " <space> | " " | ε
+<factor> ::= "(" <space> <expr> <space> ")" | <number>
+<term> ::= <factor> | <factor> <space> "*" <space> <term> | <factor> <space> "/" <space> <term>
+<expr> ::= <term> | <term> <space> "+" <space> <expr> | <term> <space> "-" <space> <expr>
