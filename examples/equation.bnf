@@ -1,6 +1,6 @@
-<digit> ::= "0"..="9"
+<expr> ::= <term> | <term> <opt-space> "+" <opt-space> <expr> | <term> <opt-space> "-" <opt-space> <expr>
+<term> ::= <factor> | <factor> <opt-space> "*" <opt-space> <term> | <factor> <opt-space> "/" <opt-space> <term>
+<factor> ::= "(" <opt-space> <expr> <opt-space> ")" | <number>
 <number> ::= <digit> <number> | <digit>
-<space> ::= " " <space> | " " | ε
-<factor> ::= "(" <space> <expr> <space> ")" | <number>
-<term> ::= <factor> | <factor> <space> "*" <space> <term> | <factor> <space> "/" <space> <term>
-<expr> ::= <term> | <term> <space> "+" <space> <expr> | <term> <space> "-" <space> <expr>
+<digit> ::= "0"..="9"
+<opt-space> ::= " " <opt-space> | ε
