@@ -2,13 +2,15 @@ use super::sequence::{parse_sequence, Sequence};
 use std::fmt::Display;
 
 #[derive(Debug, Clone)]
-pub struct Alternations(Vec<Sequence>);
+pub struct Alternations {
+    sequences: Vec<Sequence>,
+}
 
 impl Display for Alternations {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let size = self.0.len();
+        let size = self.sequences.len();
         for i in 0..size {
-            write!(f, "{}", self.0[i])?;
+            write!(f, "{}", self.sequences[i])?;
             if i != size - 1 {
                 write!(f, " | ")?;
             }
@@ -40,6 +42,6 @@ pub fn parse_alternations(
     if sequences.is_empty() {
         return Err(());
     } else {
-        Ok((index, Alternations(sequences)))
+        Ok((index, Alternations { sequences }))
     }
 }

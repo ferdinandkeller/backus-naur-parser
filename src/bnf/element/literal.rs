@@ -1,4 +1,4 @@
-fn parse_string_start(chars: &Vec<char>, index: usize) -> Result<(usize, usize), ()> {
+fn parse_literal_start(chars: &Vec<char>, index: usize) -> Result<(usize, usize), ()> {
     // count how many # there are before the string
     let mut escape_length = 0;
     while let Some('#') = chars.get(index + escape_length) {
@@ -14,7 +14,7 @@ fn parse_string_start(chars: &Vec<char>, index: usize) -> Result<(usize, usize),
     Ok((index + escape_length + 1, escape_length))
 }
 
-fn parse_string_end(chars: &Vec<char>, index: usize, escape_length: usize) -> Result<usize, ()> {
+fn parse_literal_end(chars: &Vec<char>, index: usize, escape_length: usize) -> Result<usize, ()> {
     // check that there is a "
     let Some('"') = chars.get(index) else {
         return Err(());
@@ -31,20 +31,22 @@ fn parse_string_end(chars: &Vec<char>, index: usize, escape_length: usize) -> Re
     Ok(index + 1 + escape_length)
 }
 
-pub fn parse_string(chars: &Vec<char>, index: usize) -> Result<(usize, String), ()> {
+pub fn parse_literal(chars: &Vec<char>, index: usize) -> Result<(usize, String), ()> {
     // parse the start of the string
-    let (mut index, escape_length) = parse_string_start(chars, index)?;
+    let (mut index, escape_length) = parse_literal_start(chars, index)?;
 
     // parse the content of the string
     let mut content = String::new();
     loop {
+        if let Ok(index) = parse_literal_end(chars, index, escape_length) {
+            if content.is_empty() {
+                return Err(());
+            }
+            return Ok((index, content));
+        }
+
         match chars.get(index) {
             Some(c) => {
-                if c == &'"' {
-                    if let Ok(index) = parse_string_end(chars, index, escape_length) {
-                        return Ok((index, content));
-                    }
-                }
                 content.push(*c);
                 index += 1;
             }

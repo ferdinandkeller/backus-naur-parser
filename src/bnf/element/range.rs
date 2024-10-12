@@ -1,4 +1,4 @@
-use super::string::parse_string;
+use super::literal::parse_literal;
 
 fn parse_range_symbol(chars: &Vec<char>, index: usize) -> Result<usize, ()> {
     let Some('.') = chars.get(index) else {
@@ -14,14 +14,14 @@ fn parse_range_symbol(chars: &Vec<char>, index: usize) -> Result<usize, ()> {
 }
 
 pub fn parse_range(chars: &Vec<char>, index: usize) -> Result<(usize, char, char), ()> {
-    let (index, first_string) = parse_string(chars, index)?;
+    let (index, first_string) = parse_literal(chars, index)?;
     if first_string.len() != 1 {
         return Err(());
     }
 
     let index = parse_range_symbol(chars, index)?;
 
-    let (index, second_string) = parse_string(chars, index)?;
+    let (index, second_string) = parse_literal(chars, index)?;
     if second_string.len() != 1 {
         return Err(());
     }
@@ -31,10 +31,10 @@ pub fn parse_range(chars: &Vec<char>, index: usize) -> Result<(usize, char, char
         first_string
             .chars()
             .nth(0)
-            .expect("could not get first char"),
+            .expect("First char should be defined."),
         second_string
             .chars()
             .nth(0)
-            .expect("could not get second char"),
+            .expect("Second char should be defined."),
     ))
 }
