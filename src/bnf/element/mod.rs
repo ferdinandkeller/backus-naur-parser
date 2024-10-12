@@ -1,9 +1,9 @@
-pub mod nothing;
+pub mod empty;
 pub mod range;
 pub mod reference;
 pub mod string;
 
-use nothing::parse_nothing_symbol;
+use empty::parse_empty_symbol;
 use range::parse_range;
 use reference::parse_reference;
 use std::fmt::Display;
@@ -14,7 +14,7 @@ pub enum Element {
     Literal(String),
     Range { start: char, end: char },
     Reference(String),
-    Nothing,
+    Empty,
 }
 
 impl Display for Element {
@@ -23,15 +23,15 @@ impl Display for Element {
             Element::Literal(s) => write!(f, r#""{s}""#),
             Element::Range { start, end } => write!(f, r#""{}"..="{}""#, start, end),
             Element::Reference(s) => write!(f, "<{}>", s),
-            Element::Nothing => write!(f, "ε"),
+            Element::Empty => write!(f, "ε"),
         }
     }
 }
 
 pub fn parse_element(chars: &Vec<char>, index: usize) -> Result<(usize, Element), ()> {
-    // try to parse nothing
-    if let Ok(index) = parse_nothing_symbol(chars, index) {
-        return Ok((index, Element::Nothing));
+    // try to parse empty
+    if let Ok(index) = parse_empty_symbol(chars, index) {
+        return Ok((index, Element::Empty));
     }
 
     // try to parse range

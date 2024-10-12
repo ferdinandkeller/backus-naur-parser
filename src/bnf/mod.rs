@@ -1,4 +1,4 @@
-pub mod alternative;
+pub mod alternation;
 pub mod element;
 pub mod grammar;
 pub mod sequence;
