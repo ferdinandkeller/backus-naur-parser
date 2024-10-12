@@ -5,12 +5,15 @@ use std::collections::HashMap;
 use std::fmt::Display;
 
 #[derive(Debug, Clone)]
-pub struct Grammar(HashMap<String, Alternations>);
+pub struct Grammar {
+    labels: Vec<String>,
+    maps: HashMap<String, Alternations>,
+}
 
 impl Display for Grammar {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for (label, alternations) in self.0.iter() {
-            write!(f, "<{}> ::= {}\n", label, alternations)?;
+        for label in self.labels.iter() {
+            write!(f, "{} ::= {}\n", label, self.maps.get(label).unwrap())?;
         }
         Ok(())
     }
@@ -37,9 +40,11 @@ fn parse_expression(chars: &Vec<char>, index: usize) -> Result<(usize, String, A
 }
 
 pub fn parse_grammar(chars: &Vec<char>, mut index: usize) -> Result<(usize, Grammar), ()> {
-    let mut grammar = HashMap::new();
+    let mut labels = vec![];
+    let mut maps = HashMap::new();
     while let Ok((new_index, label, alternations)) = parse_expression(chars, index) {
-        grammar.insert(label, alternations);
+        labels.push(label.clone());
+        maps.insert(label, alternations);
         index = new_index;
         match parse_newlines(chars, index) {
             Ok(new_index) => index = new_index,
@@ -49,5 +54,8 @@ pub fn parse_grammar(chars: &Vec<char>, mut index: usize) -> Result<(usize, Gram
     if chars.len() != index {
         return Err(());
     }
-    Ok((index, Grammar(grammar)))
+    if maps.is_empty() {
+        return Err(());
+    }
+    Ok((index, Grammar { labels, maps }))
 }
