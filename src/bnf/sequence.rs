@@ -1,20 +1,22 @@
 use super::element::{parse_element, Element};
 use super::symbols::parse_spacings;
-use std::collections::HashMap;
-use std::fmt::Display;
 
 #[derive(Debug, Clone)]
 pub struct Sequence {
     pub elements: Vec<Element>,
 }
 
-impl Display for Sequence {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl super::format::Format for Sequence {
+    fn format(
+        &self,
+        output: &mut dyn std::fmt::Write,
+        grammar: &super::grammar::Grammar,
+    ) -> std::fmt::Result {
         let size = self.elements.len();
         for i in 0..size {
-            write!(f, "{}", self.elements[i])?;
+            self.elements[i].format(output, grammar)?;
             if i != size - 1 {
-                write!(f, " ")?;
+                write!(output, " ")?;
             }
         }
         Ok(())
@@ -24,8 +26,8 @@ impl Display for Sequence {
 pub fn parse_sequence(
     chars: &Vec<char>,
     mut index: usize,
-    labels: &mut HashMap<usize, String>,
-    labels_reverse: &mut HashMap<String, usize>,
+    labels: &mut std::collections::HashMap<usize, String>,
+    labels_reverse: &mut std::collections::HashMap<String, usize>,
 ) -> Result<(usize, Sequence), ()> {
     let mut elements = Vec::new();
     while let Ok((new_index, element)) =

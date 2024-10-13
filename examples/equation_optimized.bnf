@@ -1,0 +1,7 @@
+<expr1> ::= <term1> <opt-space> <expr2>
+<expr2> ::= "+" <opt-space> <expr1> | "-" <opt-space> <expr1> | ε
+<term1> ::= <factor> <opt-space> <term2>
+<term2> ::= "*" <opt-space> <term1> | "/" <opt-space> <term1> | ε
+<factor> ::= "(" <opt-space> <expr1> <opt-space> ")" | <number>
+<number> ::= "0"..="9" <number> | "0"..="9"
+<opt-space> ::= " " <opt-space> | ε

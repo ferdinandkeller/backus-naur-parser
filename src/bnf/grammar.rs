@@ -2,19 +2,18 @@ use super::alternation::{parse_alternations, Alternation};
 use super::element::reference::parse_reference;
 use super::element::Element;
 use super::symbols::{parse_newlines, parse_spacings};
-use std::collections::{HashMap, HashSet};
-use std::fmt::Display;
+use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub struct Grammar {
     pub references: HashMap<usize, String>,
-    pub labels: HashSet<usize>,
+    pub labels: Vec<usize>,
     pub maps: HashMap<usize, Alternation>,
 }
 
-impl Display for Grammar {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for label_index in 1..self.references.len() {
+impl super::format::Format for Grammar {
+    fn format(&self, output: &mut dyn std::fmt::Write, grammar: &Grammar) -> std::fmt::Result {
+        for label_index in self.labels.iter() {
             let label = self
                 .references
                 .get(&label_index)
@@ -23,7 +22,9 @@ impl Display for Grammar {
                 .maps
                 .get(&label_index)
                 .expect("Alternation should exist.");
-            write!(f, "{label} ::= {alternation}\n",)?;
+            write!(output, "<{label}> ::= ",)?;
+            alternation.format(output, grammar)?;
+            write!(output, "\n",)?;
         }
         Ok(())
     }
@@ -58,7 +59,7 @@ fn parse_expression(
 pub fn parse_grammar(chars: &Vec<char>, mut index: usize) -> Result<Grammar, ()> {
     let mut references = HashMap::new();
     let mut references_reversed = HashMap::new();
-    let mut labels = HashSet::new();
+    let mut labels = Vec::new();
     let mut maps = HashMap::new();
 
     // parse all the expressions
@@ -69,7 +70,7 @@ pub fn parse_grammar(chars: &Vec<char>, mut index: usize) -> Result<Grammar, ()>
         if labels.contains(&label_index) {
             return Err(());
         } else {
-            labels.insert(label_index);
+            labels.push(label_index);
         }
 
         maps.insert(label_index, alternations);
@@ -111,20 +112,6 @@ pub struct ChoiceState {
     destination_label_index: usize,
     destination_alternation_index: usize,
     input_index: usize,
-}
-
-impl Display for ChoiceState {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}[{},{}]→{}[{}]",
-            self.source_label_index,
-            self.source_alternation_index,
-            self.source_sequence_index,
-            self.destination_label_index,
-            self.destination_alternation_index
-        )
-    }
 }
 
 #[derive(Debug, Clone, Copy)]

@@ -2,6 +2,8 @@
 
 The goal of this project is to write a parser in Rust capable of reading a valid Backup Naur Form (BNF) grammar, and applying it to a given input file. BNF in itself is quite limited, but is a good starting point for more advanced parsing algorithms.
 
+
+## Example
 Here is a sample valid BNF grammar:
 
 ```txt
@@ -23,6 +25,7 @@ And the generated output:
 
 ```
 
+## Grammar
 The grammar is slightly non-standard, as I added :
 - ranges (like "0"..="9"), based on unicode code points, making it easier to define a set of characters
 - ε symbol for empty strings (it always matches, great for making stuff optional)
@@ -30,4 +33,7 @@ The grammar is slightly non-standard, as I added :
 
 > Note : The entrypoint will be the first non-terminal symbol defined in the grammar.
 
+## Details
 BNF itself is quite simple and doesn't require advanced backtracking algorithms to be parsed. A REGEX would probably do the job (though I am not using them here because that would defeat the purpose). But that isn't necessarily the case for the grammar defined in the BNF file itself. Parsing unknown grammars might require advanced backtracking algorithms. I tried to keep the logic as simple and documented as possible.
+
+Because the parser tries to parse the grammar in the order of definition, ordering differently the alternations & optimizing the grammar can have a tremendous impact on the performance. Check `equation.bnf` vs `equation_optimized.bnf` for an example. In the real world, you would also use a two-steps parsing, first tokenizing the input, and then parsing the tokens.
