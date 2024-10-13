@@ -1,5 +1,5 @@
 use super::sequence::{parse_sequence, Sequence};
-use std::fmt::Display;
+use std::{collections::HashMap, fmt::Display};
 
 #[derive(Debug, Clone)]
 pub struct Alternation {
@@ -26,9 +26,14 @@ fn parse_alternation_symbol(chars: &Vec<char>, index: usize) -> Result<usize, ()
     Ok(index + 1)
 }
 
-pub fn parse_alternations(chars: &Vec<char>, mut index: usize) -> Result<(usize, Alternation), ()> {
+pub fn parse_alternations(
+    chars: &Vec<char>,
+    mut index: usize,
+    labels: &mut HashMap<usize, String>,
+    labels_reverse: &mut HashMap<String, usize>,
+) -> Result<(usize, Alternation), ()> {
     let mut sequences = Vec::new();
-    while let Ok((new_index, sequence)) = parse_sequence(chars, index) {
+    while let Ok((new_index, sequence)) = parse_sequence(chars, index, labels, labels_reverse) {
         sequences.push(sequence);
         index = new_index;
         match parse_alternation_symbol(chars, new_index) {

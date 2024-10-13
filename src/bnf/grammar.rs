@@ -1,21 +1,29 @@
-use super::alternation::{self, parse_alternations, Alternation};
+use super::alternation::{parse_alternations, Alternation};
 use super::element::reference::parse_reference;
 use super::element::Element;
-use super::sequence::{self, Sequence};
 use super::symbols::{parse_newlines, parse_spacings};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt::Display;
 
 #[derive(Debug, Clone)]
 pub struct Grammar {
-    labels: Vec<String>,
-    maps: HashMap<String, Alternation>,
+    pub references: HashMap<usize, String>,
+    pub labels: HashSet<usize>,
+    pub maps: HashMap<usize, Alternation>,
 }
 
 impl Display for Grammar {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for label in self.labels.iter() {
-            write!(f, "{} ::= {}\n", label, self.maps.get(label).unwrap())?;
+        for label_index in 1..self.references.len() {
+            let label = self
+                .references
+                .get(&label_index)
+                .expect("Label should exist.");
+            let alternation = self
+                .maps
+                .get(&label_index)
+                .expect("Alternation should exist.");
+            write!(f, "{label} ::= {alternation}\n",)?;
         }
         Ok(())
     }
@@ -34,41 +42,73 @@ fn parse_match_symbol(chars: &Vec<char>, index: usize) -> Result<usize, ()> {
     Ok(index + 3)
 }
 
-fn parse_expression(chars: &Vec<char>, index: usize) -> Result<(usize, String, Alternation), ()> {
-    let (index, label) = parse_reference(chars, parse_spacings(chars, index))?;
+fn parse_expression(
+    chars: &Vec<char>,
+    index: usize,
+    labels: &mut HashMap<usize, String>,
+    labels_reverse: &mut HashMap<String, usize>,
+) -> Result<(usize, usize, Alternation), ()> {
+    let (index, label_index) =
+        parse_reference(chars, parse_spacings(chars, index), labels, labels_reverse)?;
     let index = parse_match_symbol(chars, parse_spacings(chars, index))?;
-    let (index, alternations) = parse_alternations(chars, index)?;
-    Ok((index, label, alternations))
+    let (index, alternations) = parse_alternations(chars, index, labels, labels_reverse)?;
+    Ok((index, label_index, alternations))
 }
 
 pub fn parse_grammar(chars: &Vec<char>, mut index: usize) -> Result<Grammar, ()> {
-    let mut labels = vec![];
+    let mut references = HashMap::new();
+    let mut references_reversed = HashMap::new();
+    let mut labels = HashSet::new();
     let mut maps = HashMap::new();
-    while let Ok((new_index, label, alternations)) = parse_expression(chars, index) {
-        labels.push(label.clone());
-        maps.insert(label, alternations);
+
+    // parse all the expressions
+    while let Ok((new_index, label_index, alternations)) =
+        parse_expression(chars, index, &mut references, &mut references_reversed)
+    {
+        // check if the label was already defined
+        if labels.contains(&label_index) {
+            return Err(());
+        } else {
+            labels.insert(label_index);
+        }
+
+        maps.insert(label_index, alternations);
         index = new_index;
         match parse_newlines(chars, index) {
             Ok(new_index) => index = new_index,
             Err(_) => break,
         }
     }
+
+    // if we didn't parse all the input characters, then the grammar is invalid
     if chars.len() != index {
         return Err(());
     }
-    if maps.is_empty() {
+
+    // if there are no labels, then the grammar is invalid
+    if labels.is_empty() {
         return Err(());
     }
-    Ok(Grammar { labels, maps })
+
+    // if the number of labels doesn't match the number of references, then the grammar is invalid
+    if references.len() != labels.len() {
+        return Err(());
+    }
+
+    Ok(Grammar {
+        references,
+        labels,
+        maps,
+    })
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct ChoiceState {
     depth: usize,
-    source_label: String,
+    source_label_index: usize,
     source_alternation_index: usize,
     source_sequence_index: usize,
-    destination_label: String,
+    destination_label_index: usize,
     destination_alternation_index: usize,
     input_index: usize,
 }
@@ -78,10 +118,10 @@ impl Display for ChoiceState {
         write!(
             f,
             "{}[{},{}]→{}[{}]",
-            self.source_label,
+            self.source_label_index,
             self.source_alternation_index,
             self.source_sequence_index,
-            self.destination_label,
+            self.destination_label_index,
             self.destination_alternation_index
         )
     }
@@ -99,16 +139,16 @@ impl Grammar {
 
         let mut choice_stack: Vec<ChoiceState> = vec![ChoiceState {
             depth: 0,
-            source_label: self.labels[0].clone(),
+            source_label_index: 0, // this label doesn't exist, it's just a placeholder for the entrypoint
             source_alternation_index: 0,
             source_sequence_index: 0,
-            destination_label: self.labels[0].clone(),
+            destination_label_index: 1, // the first label defined is the entrypoint
             destination_alternation_index: 0,
             input_index: 0,
         }];
 
         let mut current_depth: usize = 1;
-        let mut current_label: String = self.labels[0].clone();
+        let mut current_label_index: usize = 1;
         let mut current_alternation_index: usize = 0;
         let mut current_sequence_index: usize = 0;
         let mut current_input_index: usize = 0;
@@ -120,7 +160,10 @@ impl Grammar {
             }
 
             // retrieve the current alternation
-            let current_alternation = self.maps.get(&current_label).expect("Label should exist.");
+            let current_alternation = self
+                .maps
+                .get(&current_label_index)
+                .expect("Label should exist.");
 
             // check that the current alternation index isn't out of bounds
             if current_alternation.sequences.len() <= current_alternation_index {
@@ -141,7 +184,7 @@ impl Grammar {
 
                 // move cursor to there
                 current_depth = choice.depth + 1;
-                current_label = choice.destination_label.clone();
+                current_label_index = choice.destination_label_index;
                 current_alternation_index = choice.destination_alternation_index;
                 current_sequence_index = 0;
                 current_input_index = choice.input_index;
@@ -175,7 +218,7 @@ impl Grammar {
 
                     // move cursor to there
                     current_depth = last_choice.depth + 1;
-                    current_label = last_choice.destination_label.clone();
+                    current_label_index = last_choice.destination_label_index;
                     current_alternation_index = last_choice.destination_alternation_index;
                     current_sequence_index = 0;
                     current_input_index = last_choice.input_index;
@@ -203,7 +246,7 @@ impl Grammar {
                 let previous_choice = &choice_stack[x];
 
                 current_depth = previous_choice.depth;
-                current_label = previous_choice.source_label.clone();
+                current_label_index = previous_choice.source_label_index;
                 current_alternation_index = previous_choice.source_alternation_index;
                 current_sequence_index = previous_choice.source_sequence_index + 1;
                 // we don't reset the input index because we want to continue where we left off
@@ -225,20 +268,20 @@ impl Grammar {
                 // match the literal element
                 Element::Literal(literal) => match_literal(literal, &chars, current_input_index),
                 // the reference element is a bit special
-                Element::Reference(label) => {
+                Element::Reference(label_index) => {
                     // instead of continuing the loop, we go one step deeper and reset
                     choice_stack.push(ChoiceState {
                         depth: current_depth,
-                        source_label: current_label.clone(),
+                        source_label_index: current_label_index,
                         source_alternation_index: current_alternation_index,
                         source_sequence_index: current_sequence_index,
-                        destination_label: label.clone(),
+                        destination_label_index: *label_index,
                         destination_alternation_index: 0,
                         input_index: current_input_index,
                     });
 
                     current_depth += 1;
-                    current_label = label.clone();
+                    current_label_index = label_index.clone();
                     current_alternation_index = 0;
                     current_sequence_index = 0;
 
@@ -264,7 +307,7 @@ impl Grammar {
 
                     // move cursor to there
                     current_depth = last_choice.depth + 1;
-                    current_label = last_choice.destination_label.clone();
+                    current_label_index = last_choice.destination_label_index.clone();
                     current_alternation_index = last_choice.destination_alternation_index;
                     current_sequence_index = 0;
                     current_input_index = last_choice.input_index;

@@ -1,5 +1,6 @@
 use super::element::{parse_element, Element};
 use super::symbols::parse_spacings;
+use std::collections::HashMap;
 use std::fmt::Display;
 
 #[derive(Debug, Clone)]
@@ -20,9 +21,16 @@ impl Display for Sequence {
     }
 }
 
-pub fn parse_sequence(chars: &Vec<char>, mut index: usize) -> Result<(usize, Sequence), ()> {
+pub fn parse_sequence(
+    chars: &Vec<char>,
+    mut index: usize,
+    labels: &mut HashMap<usize, String>,
+    labels_reverse: &mut HashMap<String, usize>,
+) -> Result<(usize, Sequence), ()> {
     let mut elements = Vec::new();
-    while let Ok((new_index, element)) = parse_element(chars, parse_spacings(chars, index)) {
+    while let Ok((new_index, element)) =
+        parse_element(chars, parse_spacings(chars, index), labels, labels_reverse)
+    {
         index = new_index;
         elements.push(element);
     }

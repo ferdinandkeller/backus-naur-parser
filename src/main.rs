@@ -5,7 +5,7 @@ use std::fs;
 
 fn main() {
     // example
-    let example = "equation";
+    let example = "stackoverflow";
 
     // load the grammar
     let raw_content =
@@ -13,6 +13,8 @@ fn main() {
     let chars: Vec<char> = raw_content.chars().collect();
     let grammar = parse_grammar(&chars, 0).expect("Error parsing grammar.");
     println!("{}", grammar);
+
+    println!("{:?}", grammar.references);
 
     // load the input
     let input =

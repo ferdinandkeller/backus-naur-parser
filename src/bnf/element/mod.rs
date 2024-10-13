@@ -7,14 +7,14 @@ use empty::parse_empty_symbol;
 use literal::parse_literal;
 use range::parse_range;
 use reference::parse_reference;
-use std::fmt::Display;
+use std::{collections::HashMap, fmt::Display};
 
 #[derive(Debug, Clone)]
 pub enum Element {
     Empty,
     Range { start: char, end: char },
     Literal(String),
-    Reference(String),
+    Reference(usize),
 }
 
 impl Display for Element {
@@ -28,7 +28,12 @@ impl Display for Element {
     }
 }
 
-pub fn parse_element(chars: &Vec<char>, index: usize) -> Result<(usize, Element), ()> {
+pub fn parse_element(
+    chars: &Vec<char>,
+    index: usize,
+    labels: &mut HashMap<usize, String>,
+    labels_reverse: &mut HashMap<String, usize>,
+) -> Result<(usize, Element), ()> {
     // try to parse empty
     if let Ok(index) = parse_empty_symbol(chars, index) {
         return Ok((index, Element::Empty));
@@ -45,7 +50,7 @@ pub fn parse_element(chars: &Vec<char>, index: usize) -> Result<(usize, Element)
     }
 
     // try to parse reference
-    if let Ok((index, reference)) = parse_reference(chars, index) {
+    if let Ok((index, reference)) = parse_reference(chars, index, labels, labels_reverse) {
         return Ok((index, Element::Reference(reference)));
     }
 
